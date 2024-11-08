@@ -3,8 +3,9 @@ import re
 import requests
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
-from telegram import Bot
+from telegram.asyncio import Bot
 from telegram.error import TelegramError
+import asyncio
 
 # .envファイルの読み込み
 load_dotenv()
@@ -48,7 +49,7 @@ def translate_text(text):
         return "translation failed"
 
 @app.route("/webhook", methods=["POST"])
-def webhook():
+async def webhook():
     data = request.get_json()
 
     if "message" in data and "text" in data["message"]:
@@ -60,14 +61,13 @@ def webhook():
             if not chat_id:
                 return jsonify({"status": "Chat ID not configured"}), 500
             try:
-                # Telegramにメッセージを送信
-                result = bot.send_message(
+                # asyncio.runを使用せず、直接await
+                await bot.send_message(
                     chat_id=chat_id, 
                     text=f"translation: {translated_text}"
                 )
-                print(result)
                 return jsonify({"status": "Message sent", "translated_text": translated_text})
-            except TelegramError as e:
+            except Exception as e:
                 print(f"Error sending message: {e}")
                 return jsonify({"status": "Failed to send message", "error": str(e)}), 500
 
